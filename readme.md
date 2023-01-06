@@ -14,7 +14,9 @@
   - [REMOVE](#remove)
   - [DELETE](#delete)
     - [Using DETACH](#using-detach)
+  - [UNWIND](#unwind)
   - [Other](#other)
+- [Graph Data Modeling](#graph-data-modeling)
 - [Random](#random)
 - [Links](#links)
 
@@ -39,7 +41,7 @@ Pattern:
 
 Example of pattern: `(m:Movie {title: 'Cloud Atlas'})<-[:ACTED_IN]-(p:Person)`
 
-<br>
+<br />
 
 - labels, property keys and variables are case-sensitive
 - cypher keywords are not case-sensitive
@@ -47,7 +49,12 @@ Example of pattern: `(m:Movie {title: 'Cloud Atlas'})<-[:ACTED_IN]-(p:Person)`
   - name labels with `CamelCase`
   - property keys and variables with `camelCase`
   - cypher keywords with `UPPERCASE`
-  - have at least one label for a node but no more than four
+  - relationships are `UPPERCASE` with `_` characters
+  - have at least one label for a node but no more than four (labels should help with **most** of the use cases)
+  - labels should have nothing to do with one another
+  - better not to use the same type of label in different contexts
+  - don't label the nodes to represent hierarchies
+  - eliminate duplicate data. Create new nodes and relationships if necessary. Queries related to the information in the nodes require that all nodes be retrieved.
 
 ### MATCH
 
@@ -58,6 +65,12 @@ Example of pattern: `(m:Movie {title: 'Cloud Atlas'})<-[:ACTED_IN]-(p:Person)`
 
 <details>
     <summary>Code examples</summary>
+
+Return all nodes:
+```cypher
+MATCH (n)
+RETURN n
+```
 
 Return all nodes with the label `Person`:
 ```cypher
@@ -161,6 +174,13 @@ WHERE  'Neo' IN r.roles AND m.title='The Matrix'
 RETURN p.name, r.roles
 ```
 
+Filter based on the existence of a relationship:
+```cypher
+MATCH (p:Person)
+WHERE exists ((p)-[:ACTED_IN]-()) // or WHERE NOT exists ((p)-[:ACTED_IN]-())
+SET p:Actor
+```
+
 </details>
 
 ### MERGE
@@ -242,11 +262,11 @@ RETURN p
 
 Create nodes:
 ```cypher
-CREATE (n)
+CREATE (n);
 
-CREATE (n:Person)
+CREATE (n:Person);
 
-CREATE (n:Person {name: 'Andy', title: 'Developer'})
+CREATE (n:Person {name: 'Andy', title: 'Developer'});
 ```
 
 Create relationships:
@@ -373,6 +393,80 @@ DETACH DELETE n
 
 </details>
 
+### UNWIND
+
+- expand a list into a sequence of rows
+- nothing is returned if the list is empty or the expression is not a list
+
+<details>
+    <summary>Code examples</summary>
+
+```cypher
+UNWIND [1, 2, 3, null] AS x // null is returned as well
+RETURN x, 'val' AS y 
+```
+
+Create a distinct list:
+```cypher
+WITH [1, 1, 2, 2] AS coll
+UNWIND coll AS x
+WITH DISTINCT x
+RETURN collect(x) AS setOfVals // [1,2]
+```
+
+Using `UNWIND` with any expression returning a list:
+```cypher
+WITH
+  [1, 2] AS a,
+  [3, 4] AS b
+UNWIND (a + b) AS x
+RETURN x // the lists are concatenated and 4 rows are returned
+```
+
+Use multiple `UNWIND` clauses with a nested list:
+```cyper
+WITH [[1, 2], [3, 4], 5] AS nested
+UNWIND nested AS x
+UNWIND x AS y
+RETURN y // 5 rows
+```
+
+Replace empty list with `null` with `CASE`:
+```cypher
+WITH [] AS list
+UNWIND
+  CASE
+    WHEN list = [] THEN [null]
+    ELSE list
+  END AS emptylist
+RETURN emptylist
+```
+
+Example of splitting the languages from movies to own nodes:
+```cypher
+MATCH (m:Movie)
+UNWIND m.languages AS language
+WITH  language, collect(m) AS movies
+MERGE (l:Language {name:language})
+WITH l, movies
+UNWIND movies AS m
+WITH l,m
+MERGE (m)-[:IN_LANGUAGE]->(l);
+MATCH (m:Movie)
+SET m.languages = null
+```
+
+Example of splitting genres to own nodes:
+```cypher
+MATCH (m:Movie)
+UNWIND m.genres AS genre
+MERGE (g:Genre {name: genre})
+MERGE (m)-[:IN_GENRE]->(g)
+SET m.genres = null
+```
+
+</details>
+
 ### Other
 
 - `keys()` - get the properties of a node
@@ -397,6 +491,68 @@ CALL db.propertyKeys()
   - `datetime({epochmillis: ms})` = `2019-09-25T06:29:39Z`
   - use APOC functions for more specific needs ([apoc.temporal](https://neo4j.com/labs/apoc/4.3/overview/apoc.temporal/))
 
+- use transactions by wrapping the queries with `:BEGIN` and `:COMMIT`:
+```cypher
+:BEGIN
+
+MATCH (u:User)
+SET u.name = "Steve"
+
+:COMMIT 
+```
+
+- produce a query plan showing the operations that occurred during a query:
+```cypher
+PROFILE MATCH (p:Person)-[:ACTED_IN]-()
+WHERE p.born < '1950'
+RETURN p.name 
+```
+
+## Graph Data Modeling
+
+**The process to create a graph data model**:
+- understand the domain and define use cases
+  - describe the app in details
+  - identify the users of the app (people, systems)
+  - identify the use cases
+  - rank them based on importance
+- develop the initial model
+  - model the nodes (the entities)
+  - model the relationships between nodes
+
+  <br />
+
+  Types of models:
+  - **data model** - describe the labels, relationships and properties of the graph
+  - **instance model** - sample data used to test against the use cases
+
+  <br />
+
+  The node properties are used to uniquely identify a node, answer specific details of the use cases and / or return data.
+
+  They are defined based on the use cases and the steps required to answer them. Examples:
+  - What `people` acted in a `movie`? 
+    - Retrieve a movie by its `title`. 
+    - Return the `names` of the actors.
+  - What `movies` did a `person` act in? 
+    - Retrieve a person by their `name`. 
+    - Return the `titles` of the movies.
+  - What is the highest rated movie in a particular year according to imDB? 
+    - Retrieve all movies `released` in a particular year. 
+    - Evaluate the `imDB ratings`. 
+    - Return the movie `title`.
+
+  <br />
+  
+  Relationships are usually between 2 different nodes, but they can also be to the same node.
+
+- test the use cases against the initial data model
+- create the instance model with test data using Cypher
+- test the use cases including performance against the graph
+- refactor the graph data model in case of changes in the key use cases or for performance reasons
+- implement the refactoring on the graph and retest using Cypher
+
+
 ## Random
 
 - Neo4j’s Cypher statement language is optimized for node traversal so that relationships are not traversed multiple times
@@ -413,3 +569,4 @@ CALL db.propertyKeys()
 - [Graph Academy](https://graphacademy.neo4j.com/)
 - [GraphGists](https://neo4j.com/graphgists/)
 - [Neo4j GitHub](https://github.com/neo4j-contrib)
+- [Arrows app](https://arrows.app/)
