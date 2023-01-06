@@ -27,12 +27,14 @@ Example of pattern: `(m:Movie {title: 'Cloud Atlas'})<-[:ACTED_IN]-(p:Person)`
   - name labels with `CamelCase`
   - property keys and variables with `camelCase`
   - cypher keywords with `UPPERCASE`
+  - have at least one label for a node but no more than four
 
 ### MATCH
 
 - read data
 - similar to the `FROM` clause in an SQL statement
 - need to return something
+- you don't need to specify direction in the `MATCH` pattern, the query engine will look for all nodes that are connected, regardless of the direction of the relationship
 
 Return all nodes with the label `Person`:
 ```cypher
@@ -131,6 +133,158 @@ WHERE  'Neo' IN r.roles AND m.title='The Matrix'
 RETURN p.name, r.roles
 ```
 
+### MERGE
+
+- the `MERGE` operations work by first trying to find a pattern in the graph. If the pattern is found then the data already exists and is not created. If the pattern is not found, then the data can be created
+- when using `MERGE` you need to add at least a property that will make the unique primary key for the node
+```cypher
+MERGE (p:Person {name: 'Michael Cain'})
+```
+
+Can merge multiple `MERGE` clauses together:
+```cypher
+MERGE (p:Person {name: 'Katie Holmes'})
+MERGE (m:Movie {title: 'The Dark Knight'})
+RETURN p, m
+```
+
+Create a relationship based on 2 existing nodes:
+```cypher
+MATCH (p:Person {name: 'Michael Cain'})
+MATCH (m:Movie {title: 'The Dark Knight'})
+MERGE (p)-[:ACTED_IN]->(m)
+```
+
+Create the nodes and the relationship
+- using multiple clauses:
+```cypher
+MERGE (p:Person {name: 'Chadwick Boseman'})
+MERGE (m:Movie {title: 'Black Panther'})
+MERGE (p)-[:ACTED_IN]-(m)
+```
+(if the direction of the relationship is not set, it is assumed to be left-to-right)
+- in single clause
+```cypher
+MERGE (p:Person {name: 'Emily Blunt'})-[:ACTED_IN]->(m:Movie {title: 'A Quiet Place'})
+RETURN p, m
+```
+
+#### Customized MERGE behavior
+
+- set behavior at runtime to set properties when the node is created or when it is found with `ON CREATE SET`, `ON MATCH SET` or `SET`
+```cypher
+// Find or create a person with this name
+MERGE (p:Person {name: 'McKenna Grace'})
+
+// Only set the `createdAt` property if the node is created during this query
+ON CREATE SET p.createdAt = datetime()
+
+// Only set the `updatedAt` property if the node was created previously
+ON MATCH SET p.updatedAt = datetime()
+
+// Set the `born` property regardless
+SET p.born = 2006
+
+RETURN p
+```
+
+### CREATE
+
+- it doesn't look up the primary key before adding the node
+- provides greater speed during import
+- `MERGE` eliminates duplication of nodes
+
+
+
+
+
+
+### SET
+
+- set a property value
+- this can be done with `MERGE` as well 
+
+Set one or more properties:
+```cypher
+MATCH (p:Person)-[r:ACTED_IN]->(m:Movie)
+WHERE p.name = 'Michael Cain' AND m.title = 'The Dark Knight'
+SET r.roles = ['Alfred Penny'], r.year = 2008
+RETURN p, r, m
+```
+
+Update existing properties:
+```cypher
+MATCH (p:Person)-[r:ACTED_IN]->(m:Movie)
+WHERE p.name = 'Michael Cain' AND m.title = 'The Dark Knight'
+SET r.roles = ['Mr. Alfred Penny']
+RETURN p, r, m
+```
+
+Add new label to a node:
+```cypher
+MATCH (p:Person {name: 'Jane Doe'})
+SET p:Developer
+RETURN p
+```
+
+#### Unsetting a property
+
+Remove property:
+```cypher
+MATCH (p:Person)
+WHERE p.name = 'Gene Hackman'
+SET p.born = null
+RETURN p
+```
+
+### REMOVE
+
+`REMOVE` can be used for removing a property as well:
+```cypher
+MATCH (p:Person)-[r:ACTED_IN]->(m:Movie)
+WHERE p.name = 'Michael Cain' AND m.title = 'The Dark Knight'
+REMOVE r.roles
+RETURN p, r, m
+```
+
+Remove a label from a node:
+```cypher
+MATCH (p:Person {name: 'Jane Doe'}) // Same as MATCH (p:Person:Developer {name: 'Jane Doe'})
+REMOVE p:Developer
+RETURN p
+```
+
+### DELETE
+
+- attempting to delete a node with a relationship will throw an error - Neo4j prevents orphaned relationships in the graph
+
+```cypher
+MATCH (p:Person)
+WHERE p.name = 'Jane Doe'
+DELETE p
+```
+
+Remove a relationship:
+```cypher
+MATCH (p:Person {name: 'Jane Doe'})-[r:ACTED_IN]->(m:Movie {title: 'The Matrix'})
+DELETE r
+RETURN p, m
+```
+
+#### Using DETACH
+Delete a node and all its relationships:
+```cypher
+MATCH (p:Person {name: 'Jane Doe'})
+DETACH DELETE p
+```
+
+Delete all nodes and all relationships in the graph:
+```cypher
+MATCH (n)
+DETACH DELETE n
+```
+(this will exhaust memory on a large db)
+
 ### Other
 
 - `keys()` - get the properties of a node
@@ -139,10 +293,21 @@ MATCH (p:Person)
 RETURN p.name, keys(p) 
 ```
 
-- get all property keys defined in the graph (even if there are no nodes or relationships with them anymore)
+- get all node labels defined in the graph
+```cypher
+CALL db.labels()
+```
+
+- get all property keys defined (even if there are no nodes or relationships with them anymore)
 ```cypher
 CALL db.propertyKeys()
 ```
+
+- date specific uses
+  - `datetime()` - current date and time
+  - `date("2019-09-30")` = `2019-09-29`
+  - `datetime({epochmillis: ms})` = `2019-09-25T06:29:39Z`
+  - use APOC functions for more specific needs ([apoc.temporal](https://neo4j.com/labs/apoc/4.3/overview/apoc.temporal/))
 
 ## Random
 
