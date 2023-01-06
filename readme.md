@@ -1,5 +1,25 @@
 # Neo4j
 
+<details>
+    <summary>Table of Content</summary>
+
+- [My completed courses](#my-completed-courses)
+- [Cypher](#cypher)
+  - [MATCH](#match)
+  - [WHERE](#where)
+  - [MERGE](#merge)
+  - [CREATE](#create)
+    - [Customized MERGE behavior](#customized-merge-behavior)
+  - [SET](#set)
+  - [REMOVE](#remove)
+  - [DELETE](#delete)
+    - [Using DETACH](#using-detach)
+  - [Other](#other)
+- [Random](#random)
+- [Links](#links)
+
+</details>
+
 ## My completed courses
 
 - [Neo4j Fundamentals](https://graphacademy.neo4j.com/u/cc0153fe-e780-4bae-80f3-a56cf17c7421/neo4j-fundamentals/)
@@ -36,6 +56,9 @@ Example of pattern: `(m:Movie {title: 'Cloud Atlas'})<-[:ACTED_IN]-(p:Person)`
 - need to return something
 - you don't need to specify direction in the `MATCH` pattern, the query engine will look for all nodes that are connected, regardless of the direction of the relationship
 
+<details>
+    <summary>Code examples</summary>
+
 Return all nodes with the label `Person`:
 ```cypher
 MATCH (p:Person)
@@ -60,7 +83,12 @@ MATCH (p:Person {name: 'Tom Hanks'})-[:ACTED_IN]->(m:Movie)
 RETURN m.title
 ```
 
+</details>
+
 ### WHERE
+
+<details>
+    <summary>Code examples</summary>
 
 Filter by specifying the property value:
 ```cypher
@@ -75,7 +103,7 @@ MATCH (p)-[:ACTED_IN]->(m)
 WHERE p:Person AND m:Movie AND m.title='The Matrix'
 RETURN p.name
 ```
-is same as:
+is the same as:
 ```cypher
 MATCH (p:Person)-[:ACTED_IN]->(m:Movie)
 WHERE m.title='The Matrix'
@@ -133,10 +161,16 @@ WHERE  'Neo' IN r.roles AND m.title='The Matrix'
 RETURN p.name, r.roles
 ```
 
+</details>
+
 ### MERGE
 
 - the `MERGE` operations work by first trying to find a pattern in the graph. If the pattern is found then the data already exists and is not created. If the pattern is not found, then the data can be created
 - when using `MERGE` you need to add at least a property that will make the unique primary key for the node
+
+<details>
+    <summary>Code examples</summary>
+
 ```cypher
 MERGE (p:Person {name: 'Michael Cain'})
 ```
@@ -169,9 +203,15 @@ MERGE (p:Person {name: 'Emily Blunt'})-[:ACTED_IN]->(m:Movie {title: 'A Quiet Pl
 RETURN p, m
 ```
 
+</details>
+
 #### Customized MERGE behavior
 
 - set behavior at runtime to set properties when the node is created or when it is found with `ON CREATE SET`, `ON MATCH SET` or `SET`
+
+<details>
+    <summary>Code example</summary>
+
 ```cypher
 // Find or create a person with this name
 MERGE (p:Person {name: 'McKenna Grace'})
@@ -188,21 +228,46 @@ SET p.born = 2006
 RETURN p
 ```
 
+</details>
+
+
 ### CREATE
 
 - it doesn't look up the primary key before adding the node
 - provides greater speed during import
 - `MERGE` eliminates duplication of nodes
 
+<details>
+    <summary>Code examples</summary>
 
+Create nodes:
+```cypher
+CREATE (n)
 
+CREATE (n:Person)
 
+CREATE (n:Person {name: 'Andy', title: 'Developer'})
+```
 
+Create relationships:
+```cypher
+MATCH
+  (a:Person),
+  (b:Person)
+WHERE a.name = 'A' AND b.name = 'B'
+CREATE (a)-[r:RELTYPE]->(b)
+RETURN type(r)
+```
+
+</details>
 
 ### SET
 
 - set a property value
 - this can be done with `MERGE` as well 
+
+<details>
+    <summary>Code examples</summary>
 
 Set one or more properties:
 ```cypher
@@ -227,7 +292,12 @@ SET p:Developer
 RETURN p
 ```
 
+</details>
+
 #### Unsetting a property
+
+<details>
+    <summary>Code example</summary>
 
 Remove property:
 ```cypher
@@ -237,9 +307,14 @@ SET p.born = null
 RETURN p
 ```
 
+</details>
+
 ### REMOVE
 
-`REMOVE` can be used for removing a property as well:
+<details>
+    <summary>Code examples</summary>
+
+Remove a property:
 ```cypher
 MATCH (p:Person)-[r:ACTED_IN]->(m:Movie)
 WHERE p.name = 'Michael Cain' AND m.title = 'The Dark Knight'
@@ -254,9 +329,14 @@ REMOVE p:Developer
 RETURN p
 ```
 
+</details>
+
 ### DELETE
 
 - attempting to delete a node with a relationship will throw an error - Neo4j prevents orphaned relationships in the graph
+
+<details>
+    <summary>Code examples</summary>
 
 ```cypher
 MATCH (p:Person)
@@ -271,7 +351,13 @@ DELETE r
 RETURN p, m
 ```
 
+</details>
+
 #### Using DETACH
+
+<details>
+    <summary>Code examples</summary>
+
 Delete a node and all its relationships:
 ```cypher
 MATCH (p:Person {name: 'Jane Doe'})
@@ -284,6 +370,8 @@ MATCH (n)
 DETACH DELETE n
 ```
 (this will exhaust memory on a large db)
+
+</details>
 
 ### Other
 
@@ -315,8 +403,6 @@ CALL db.propertyKeys()
 - each relationship must have a direction in the graph. The relationship can be queried in either direction, or ignored completely at query time
 - Neo4j stores nodes and relationships as objects that are linked to each other via pointers
   - `index-free adjacency` - a reference to the relationship is stored with both start and end nodes
-
-
 
 ## Links
 
