@@ -17,6 +17,7 @@
   - [UNWIND](#unwind)
   - [Other](#other)
 - [Graph Data Modeling](#graph-data-modeling)
+- [Import Data](#import-data)
 - [Random](#random)
 - [Links](#links)
 
@@ -28,7 +29,14 @@
 - [Cypher Fundamentals](https://graphacademy.neo4j.com/courses/cypher-fundamentals/certificate/)
 - [Graph Data Modeling Fundamentals](https://graphacademy.neo4j.com/courses/modeling-fundamentals/certificate/)
 
+
 - [Building Neo4j Applications with Go](https://graphacademy.neo4j.com/courses/app-go/certificate/) (my implementation [here](https://github.com/mariamihai/neo4j-app-go))
+
+
+To finish:
+- [Importing CSV Data into Neo4j](https://graphacademy.neo4j.com/courses/importing-data/)
+- [Intermediate Cypher Queries](https://graphacademy.neo4j.com/courses/cypher-intermediate-queries/)
+- [Cypher Indexes and Constraints](https://graphacademy.neo4j.com/courses/cypher-indexes-constraints/)
 
 ## Cypher
 
@@ -570,6 +578,22 @@ RETURN COUNT(*) AS `Number of relationships merged`
 - refactor the graph data model in case of changes in the key use cases or for performance reasons
 - implement the refactoring on the graph and retest using Cypher
 
+## Import data
+
+- Cypher has a built-in clause (`LOAD CSV`), for importing JSON or XML need to use the APOC library
+- default field terminator is `,`
+
+
+- the types of data that you can store as properties in Neo4j include:
+  - String 
+  - Long (integer values)
+  - Double (decimal values)
+  - Boolean 
+  - Date/Datetime 
+  - Point (spatial)
+  - StringArray (comma-separated list of strings)
+  - LongArray (comma-separated list of integer values)
+  - DoubleArray (comma-separated list of decimal values)
 
 ## Random
 
@@ -588,4 +612,6 @@ RETURN COUNT(*) AS `Number of relationships merged`
 - [GraphGists](https://neo4j.com/graphgists/)
 - [Neo4j GitHub](https://github.com/neo4j-contrib)
 - [APOC](https://neo4j.com/labs/apoc/)
+- [Cypher cheatsheet](https://neo4j.com/docs/cypher-cheat-sheet/current/)
 - [Arrows app](https://arrows.app/)
+- [Certification](https://wiki.glitchdata.com/index.php/Neo4J_Certification)
