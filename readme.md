@@ -508,6 +508,16 @@ WHERE p.born < '1950'
 RETURN p.name 
 ```
 
+- use APOC for creating new and specialized relationships
+```cypher
+MATCH (n:Actor)-[r:ACTED_IN]->(m:Movie)
+CALL apoc.merge.relationship(n,
+                              'ACTED_IN_' + left(m.released,4),
+                              {},
+                              m ) YIELD rel
+RETURN COUNT(*) AS `Number of relationships merged`
+```
+
 ## Graph Data Modeling
 
 **The process to create a graph data model**:
@@ -546,6 +556,14 @@ RETURN p.name
   
   Relationships are usually between 2 different nodes, but they can also be to the same node.
 
+  Can add specialized relationships if that will filter fewer nodes but keeping the original generic relationships as well. For eg., besides `ACTED_IN` can add `ACTED_IN_2023` as wel.
+
+  Can create [intermediate nodes](https://graphacademy.neo4j.com/courses/modeling-fundamentals/8-adding-intermediate-nodes/1-intermediate-nodes/) when you need to:
+  - connect more than 2 nodes in a single context (hyperedges, n-ary relationships)
+  - relate something to a relationship
+  - share data in the graph between entities
+  
+
 - test the use cases against the initial data model
 - create the instance model with test data using Cypher
 - test the use cases including performance against the graph
@@ -569,4 +587,5 @@ RETURN p.name
 - [Graph Academy](https://graphacademy.neo4j.com/)
 - [GraphGists](https://neo4j.com/graphgists/)
 - [Neo4j GitHub](https://github.com/neo4j-contrib)
+- [APOC](https://neo4j.com/labs/apoc/)
 - [Arrows app](https://arrows.app/)
