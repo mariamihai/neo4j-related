@@ -8,8 +8,8 @@
   - [MATCH](#match)
   - [WHERE](#where)
   - [MERGE](#merge)
-  - [CREATE](#create)
     - [Customized MERGE behavior](#customized-merge-behavior)
+  - [CREATE](#create)
   - [SET](#set)
   - [REMOVE](#remove)
   - [DELETE](#delete)
@@ -19,6 +19,10 @@
 - [Graph Data Modeling](#graph-data-modeling)
 - [Import Data](#import-data)
 - [Random](#random)
+- [golang-migrate](#golang-migrate)
+  - [Issues](#issues)
+    - [Running the migration on an empty db](#running-the-migration-on-an-empty-db)
+    - [Dirty database version](#dirty-database-version)
 - [Links](#links)
 
 </details>
@@ -257,7 +261,6 @@ RETURN p
 ```
 
 </details>
-
 
 ### CREATE
 
@@ -526,6 +529,10 @@ CALL apoc.merge.relationship(n,
 RETURN COUNT(*) AS `Number of relationships merged`
 ```
 
+- view the schema with `:schema`
+
+- visualize:  `CALL db.schema.visualization`
+
 ## Graph Data Modeling
 
 **The process to create a graph data model**:
@@ -602,6 +609,102 @@ RETURN COUNT(*) AS `Number of relationships merged`
 - Neo4j stores nodes and relationships as objects that are linked to each other via pointers
   - `index-free adjacency` - a reference to the relationship is stored with both start and end nodes
 
+## golang-migrate
+
+Docs: [migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate), [go](https://github.com/golang-migrate/migrate/tree/master/database/neo4j).
+
+```bash
+go install -tags 'neo4j' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+migrate -h
+
+# ext specifies the file extension to use when creating migrations file.
+# dir specifies which directory to create the migrations in.
+migrate create -ext cypher -dir db/migrations <filename>
+
+# neo4j://user:password@host:port/
+export DB_URL='...'
+
+# run migrations
+migrate -database ${DB_URL} -path db/migrations up
+migrate -database <db> -path db/migrations up
+# rollback migrations
+migrate -database <db> -path db/migrations down
+
+# run the first two migrations
+migrate -source db/migrations -database <db> up 2
+# migrations hosted on github
+migrate -source github://mattes:personal-access-token@mattes/migrate_test \
+        -database <db> down 2
+
+# docker usage
+docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
+    -path=/migrations/ -database <db> up
+    
+# drop everything inside the db (verbose)
+migrate -database <db> -path db/migrations -verbose drop
+```
+
+### Issues
+
+#### Running the migration on an empty db
+
+```
+error: Server error: [Neo.ClientError.Statement.SyntaxError] Invalid constraint syntax, ON and ASSERT should not be used. Replace ON with FOR and ASSERT with REQUIRE. (line 1, column 1 (offset: 0))
+"CREATE CONSTRAINT ON (a:SchemaMigration) ASSERT a.version IS UNIQUE"
+```
+
+**Fix:**
+
+Create the constraint manually:
+```
+CREATE CONSTRAINT FOR (a:SchemaMigration) REQUIRE a.version IS UNIQUE
+```
+
+Issue coming from [here](https://github.com/golang-migrate/migrate/blob/eebc4c437a122d130005272c0413e6bd9506e4fd/database/neo4j/neo4j.go#L298).
+
+#### Dirty database version
+
+```
+Dirty database version xxx. Fix and force version.
+```
+
+Check schema migration:
+```
+MATCH(sm:SchemaMigration) RETURN sm
+```
+
+This will return something like this with `dirty = true`:
+```
+{
+  "identity": 0,
+  "labels": [
+    "SchemaMigration"
+  ],
+  "properties": {
+    "dirty": true,
+    "version": 20230120122715,
+    "ts": "2023-01-20T13:52:44.802000000Z"
+  },
+  "elementId": "0"
+}
+```
+
+**Fix:**
+
+Clean up the database and then change the `dirty` flag on `SchemaMigration` and rollback version number to last migration that was successfully applied.
+
+```
+MATCH(sm:SchemaMigration) SET sm.dirty = false, sm.version = <previous-version> RETURN sm
+```
+
+Can set version with:
+```
+migrate force V  # Set version V but don't run migration (ignores dirty state)
+
+migrate -database <db> -path db/migrations -verbose version <version>
+```
+
 ## Links
 
 - [resources](https://neo4j.com/developer/resources/)
@@ -615,3 +718,6 @@ RETURN COUNT(*) AS `Number of relationships merged`
 - [Cypher cheatsheet](https://neo4j.com/docs/cypher-cheat-sheet/current/)
 - [Arrows app](https://arrows.app/)
 - [Certification](https://wiki.glitchdata.com/index.php/Neo4J_Certification)
+
+
+- [Stackoverflow](https://stackoverflow.com/a/59616550)

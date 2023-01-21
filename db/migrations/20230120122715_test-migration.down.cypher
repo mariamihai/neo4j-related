@@ -1,0 +1,1 @@
+DROP CONSTRAINT constraint_book_isbn IF EXISTS;
