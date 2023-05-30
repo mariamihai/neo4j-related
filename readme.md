@@ -707,13 +707,21 @@ migrate -database <db> -path db/migrations -verbose version <version>
 
 ## Links
 
+- [The Neo4j Go Driver Manual](https://neo4j.com/docs/go-manual/current/)
 - [resources](https://neo4j.com/developer/resources/)
 - [docs](https://neo4j.com/docs/)
 - [sandbox](https://sandbox.neo4j.com/)
 - [Neo4j YT](https://www.youtube.com/channel/UCvze3hU6OZBkB1vkhH2lH9Q)
+  - [Mock Data Generator YT](https://www.youtube.com/watch?v=zHtJ_qNKA-Q&ab_channel=Neo4j)
+    - [app](https://jalakoo-mock-graph-data-generator-mock-generatorsapp-clo-pcsqmw.streamlit.app/)
+    - [GitHub](https://github.com/jalakoo/mock-graph-data-generator)
+  - [GraphGPT](https://www.youtube.com/watch?v=As2UBg56b3o&ab_channel=Neo4j)
+  - [APAC Training Series - Intro to Neo4j](https://www.youtube.com/watch?v=1-EZdN8TAvY&ab_channel=Neo4j)
+  - [Identity and Access Management](https://www.youtube.com/watch?v=5hVogEL3CGY&t=4s&ab_channel=Neo4j)
 - [Graph Academy](https://graphacademy.neo4j.com/)
 - [GraphGists](https://neo4j.com/graphgists/)
 - [Neo4j GitHub](https://github.com/neo4j-contrib)
+- [Example Project](https://neo4j.com/developer/example-project/)
 - [APOC](https://neo4j.com/labs/apoc/)
 - [Cypher cheatsheet](https://neo4j.com/docs/cypher-cheat-sheet/current/)
 - [Arrows app](https://arrows.app/)
